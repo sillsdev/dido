@@ -63,13 +63,16 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Install espeak-ng (macOS)
+        if: matrix.os == 'darwin'
+        run: brew update && brew install espeak-ng
+
       - name: Build darwin/universal
         if: matrix.os == 'darwin'
         run: VERSION="${{ needs.prepare.outputs.tag }}" bash packaging/sab/build.sh mac
       - name: Stage darwin artifact
         if: matrix.os == 'darwin'
         run: |
-          brew update && brew install espeak-ng
           mkdir -p stage/darwin-universal
           cp packaging/sab/dist/mac/go-aeneas stage/darwin-universal/
           cp LICENSE stage/darwin-universal/
@@ -99,7 +102,9 @@ jobs:
 
       - name: Install espeak-ng (Windows)
         if: matrix.os == 'windows'
-        run: choco install -y espeak-ng
+        run: |
+          choco install -y espeak-ng
+          dir /s /b "%ProgramFiles%\eSpeak NG\*"
 
       - name: Build windows/amd64
         if: matrix.os == 'windows'
@@ -109,7 +114,6 @@ jobs:
           GOARCH: amd64
           CGO_ENABLED: "0"
         run: |
-          which espeak-ng
           mkdir -p stage/windows-amd64
           go build -trimpath -ldflags="-s -w -X main.version=${{ needs.prepare.outputs.tag }}" \
             -o stage/windows-amd64/dido.exe ./cmd/dido
