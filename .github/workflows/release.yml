@@ -1,7 +1,6 @@
 # On a `v*` tag push, build dido binaries for each (OS, arch) and
 # attach them to a GitHub Release. Each archive holds a `go-aeneas`
-# binary plus LICENSE; Windows additionally ships `aeneas-cli.exe`
-# (SAB's Windows-side filename).
+# binary plus LICENSE and espeak-ng data and binaries.
 
 name: release
 
@@ -38,7 +37,7 @@ jobs:
             runner: ubuntu-latest
           - os: windows
             arch: amd64
-            runner: ubuntu-latest
+            runner: windows-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -66,8 +65,13 @@ jobs:
           mkdir -p stage/darwin-universal
           cp packaging/sab/dist/mac/go-aeneas stage/darwin-universal/
           cp LICENSE stage/darwin-universal/
+          BREW_PREFIX="$(brew --prefix)"
+          cp -RL "$BREW_PREFIX/share/espeak-ng-data" stage/darwin-universal/
+          cp -L "$BREW_PREFIX/bin/espeak-ng" stage/darwin-universal/
+          cp -L "$BREW_PREFIX/lib/libespeak-ng*.dylib" stage/darwin-universal/
+          cp -L "$BREW_PREFIX/lib/libportaudio*.dylib" stage/darwin-universal/
           ARCHIVE="dido_${{ steps.ver.outputs.tag }}_darwin_universal.tar.gz"
-          tar -C stage -czf "$ARCHIVE" darwin-universal
+          tar -C stage/darwin-universal -czf "$ARCHIVE" .
           echo "archive=$ARCHIVE" >> "$GITHUB_ENV"
 
       - name: Build linux
@@ -81,11 +85,11 @@ jobs:
           go build -trimpath -ldflags="-s -w -X main.version=${{ steps.ver.outputs.tag }}" \
             -o stage/linux-${{ matrix.arch }}/go-aeneas ./cmd/dido
           cp LICENSE stage/linux-${{ matrix.arch }}/
+          cp -R "$ESPEAK_PREFIX/share/espeak-ng-data" stage/linux-${{ matrix.arch }}/
           ARCHIVE="dido_${{ steps.ver.outputs.tag }}_linux_${{ matrix.arch }}.tar.gz"
           tar -C stage -czf "$ARCHIVE" linux-${{ matrix.arch }}
           echo "archive=$ARCHIVE" >> "$GITHUB_ENV"
 
-      # SAB on Windows looks for `aeneas-cli.exe`; ship both names.
       - name: Build windows/amd64
         if: matrix.os == 'windows'
         env:
@@ -93,13 +97,17 @@ jobs:
           GOARCH: amd64
           CGO_ENABLED: "0"
         run: |
+          choco install -y espeak-ng 
           mkdir -p stage/windows-amd64
           go build -trimpath -ldflags="-s -w -X main.version=${{ steps.ver.outputs.tag }}" \
             -o stage/windows-amd64/dido.exe ./cmd/dido
-          cp stage/windows-amd64/dido.exe stage/windows-amd64/aeneas-cli.exe
           cp LICENSE stage/windows-amd64/
+          ESPEAK_PREFIX=C:\Program Files\eSpeak NG
+          cp -R "$ESPEAK_PREFIX\espeak-ng-data" stage/windows-amd64
+          cp "$ESPEAK_PREFIX\espeak-ng.exe" stage/windows-amd64
+          cp "$ESPEAK_PREFIX\libespeak-ng*.dll" stage/windows-amd64
           ARCHIVE="dido_${{ steps.ver.outputs.tag }}_windows_amd64.zip"
-          (cd stage && zip -r "../$ARCHIVE" windows-amd64)
+          (cd stage/windows-amd64 && zip -r "../../$ARCHIVE" .)
           echo "archive=$ARCHIVE" >> "$GITHUB_ENV"
 
       - name: Upload artifact
