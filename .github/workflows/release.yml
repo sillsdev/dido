@@ -100,6 +100,7 @@ jobs:
 
       - name: Build windows/amd64
         if: matrix.os == 'windows'
+        shell: bash
         env:
           GOOS: windows
           GOARCH: amd64
@@ -110,10 +111,10 @@ jobs:
           go build -trimpath -ldflags="-s -w -X main.version=${{ needs.prepare.outputs.tag }}" \
             -o stage/windows-amd64/dido.exe ./cmd/dido
           cp LICENSE stage/windows-amd64/
-          ESPEAK_PREFIX=C:\Program Files\eSpeak NG
-          cp -R "$ESPEAK_PREFIX\espeak-ng-data" stage/windows-amd64
-          cp "$ESPEAK_PREFIX\espeak-ng.exe" stage/windows-amd64
-          cp "$ESPEAK_PREFIX\libespeak-ng*.dll" stage/windows-amd64
+          ESPEAK_PREFIX="C:/Program Files/eSpeak NG"
+          cp -R "$ESPEAK_PREFIX/espeak-ng-data" stage/windows-amd64
+          cp "$ESPEAK_PREFIX/espeak-ng.exe" stage/windows-amd64
+          cp "$ESPEAK_PREFIX/libespeak-ng*.dll" stage/windows-amd64
           ARCHIVE="dido_${{ needs.prepare.outputs.tag }}_windows_amd64.zip"
           (cd stage/windows-amd64 && zip -r "../../$ARCHIVE" .)
           echo "archive=$ARCHIVE" >> "$GITHUB_ENV"
