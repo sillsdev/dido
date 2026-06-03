@@ -100,11 +100,12 @@ jobs:
           tar -C stage -czf "$ARCHIVE" linux-${{ matrix.arch }}
           echo "archive=$ARCHIVE" >> "$GITHUB_ENV"
 
-      - name: Install espeak-ng (Windows)
+      - name: Install espeak-ng and 7zip (Windows)
         if: matrix.os == 'windows'
         shell: cmd
         run: |
           choco install -y espeak-ng
+          choco install -y 7zip
           if exist "%ProgramFiles%\eSpeak NG\espeak-ng.exe" (
             echo espeak-ng found at %ProgramFiles%\eSpeak NG
           ) else (
@@ -129,7 +130,7 @@ jobs:
           cp "$ESPEAK_PREFIX/espeak-ng.exe" stage/windows-amd64
           cp "$ESPEAK_PREFIX"/libespeak-ng*.dll stage/windows-amd64
           ARCHIVE="dido_${{ needs.prepare.outputs.tag }}_windows_amd64.zip"
-          (cd stage/windows-amd64 && zip -r "../../$ARCHIVE" .)
+          7z a -tzip -r "$ARCHIVE" stage/windows-amd64/*
           echo "archive=$ARCHIVE" >> "$GITHUB_ENV"
 
       - name: Upload artifact
