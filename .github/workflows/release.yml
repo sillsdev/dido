@@ -105,7 +105,12 @@ jobs:
         shell: cmd
         run: |
           choco install -y espeak-ng
-          dir /s /b "%ProgramFiles%\eSpeak NG\*"
+          if exist "%ProgramFiles%\eSpeak NG\espeak-ng.exe" (
+            echo espeak-ng found at %ProgramFiles%\eSpeak NG
+          ) else (
+            echo ERROR: espeak-ng not found at expected location
+            exit /b 1
+          )
 
       - name: Build windows/amd64
         if: matrix.os == 'windows'
@@ -119,10 +124,10 @@ jobs:
           go build -trimpath -ldflags="-s -w -X main.version=${{ needs.prepare.outputs.tag }}" \
             -o stage/windows-amd64/dido.exe ./cmd/dido
           cp LICENSE stage/windows-amd64/
-          ESPEAK_PREFIX="$(dirname "$(dirname "$(which espeak-ng)")")"
+          ESPEAK_PREFIX="/c/Program Files/eSpeak NG"
           cp -R "$ESPEAK_PREFIX/espeak-ng-data" stage/windows-amd64
           cp "$ESPEAK_PREFIX/espeak-ng.exe" stage/windows-amd64
-          cp "$ESPEAK_PREFIX/libespeak-ng*.dll" stage/windows-amd64
+          cp "$ESPEAK_PREFIX"/libespeak-ng*.dll stage/windows-amd64
           ARCHIVE="dido_${{ needs.prepare.outputs.tag }}_windows_amd64.zip"
           (cd stage/windows-amd64 && zip -r "../../$ARCHIVE" .)
           echo "archive=$ARCHIVE" >> "$GITHUB_ENV"
