@@ -76,8 +76,8 @@ jobs:
           BREW_PREFIX="$(brew --prefix)"
           cp -RL "$BREW_PREFIX/share/espeak-ng-data" stage/darwin-universal/
           cp -L "$BREW_PREFIX/bin/espeak-ng" stage/darwin-universal/
-          cp -L "$BREW_PREFIX/lib/libespeak-ng*.dylib" stage/darwin-universal/
-          cp -L "$BREW_PREFIX/lib/libpcaudio*.dylib" stage/darwin-universal/
+          cp -L "$BREW_PREFIX"/lib/libespeak-ng*.dylib stage/darwin-universal/
+          cp -L "$BREW_PREFIX"/lib/libpcaudio*.dylib stage/darwin-universal/
           ARCHIVE="dido_${{ needs.prepare.outputs.tag }}_darwin_universal.tar.gz"
           tar -C stage/darwin-universal -czf "$ARCHIVE" .
           echo "archive=$ARCHIVE" >> "$GITHUB_ENV"
@@ -97,6 +97,10 @@ jobs:
           tar -C stage -czf "$ARCHIVE" linux-${{ matrix.arch }}
           echo "archive=$ARCHIVE" >> "$GITHUB_ENV"
 
+      - name: Install espeak-ng (Windows)
+        if: matrix.os == 'windows'
+        run: choco install -y espeak-ng
+
       - name: Build windows/amd64
         if: matrix.os == 'windows'
         shell: bash
@@ -105,8 +109,7 @@ jobs:
           GOARCH: amd64
           CGO_ENABLED: "0"
         run: |
-          choco install -y espeak-ng
-          where espeak-ng
+          which espeak-ng
           mkdir -p stage/windows-amd64
           go build -trimpath -ldflags="-s -w -X main.version=${{ needs.prepare.outputs.tag }}" \
             -o stage/windows-amd64/dido.exe ./cmd/dido
