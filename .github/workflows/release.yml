@@ -18,8 +18,24 @@ permissions:
   contents: write
 
 jobs:
+  prepare:
+    name: prepare
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.ver.outputs.tag }}
+    steps:
+      - name: Resolve version
+        id: ver
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
     name: build (${{ matrix.os }}-${{ matrix.arch }})
+    needs: prepare
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -47,18 +63,9 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Resolve version
-        id: ver
-        run: |
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Build darwin/universal
         if: matrix.os == 'darwin'
-        run: VERSION="${{ steps.ver.outputs.tag }}" bash packaging/sab/build.sh mac
+        run: VERSION="${{ needs.prepare.outputs.tag }}" bash packaging/sab/build.sh mac
       - name: Stage darwin artifact
         if: matrix.os == 'darwin'
         run: |
@@ -71,7 +78,7 @@ jobs:
           cp -L "$BREW_PREFIX/bin/espeak-ng" stage/darwin-universal/
           cp -L "$BREW_PREFIX/lib/libespeak-ng*.dylib" stage/darwin-universal/
           cp -L "$BREW_PREFIX/lib/libportaudio*.dylib" stage/darwin-universal/
-          ARCHIVE="dido_${{ steps.ver.outputs.tag }}_darwin_universal.tar.gz"
+          ARCHIVE="dido_${{ needs.prepare.outputs.tag }}_darwin_universal.tar.gz"
           tar -C stage/darwin-universal -czf "$ARCHIVE" .
           echo "archive=$ARCHIVE" >> "$GITHUB_ENV"
 
@@ -83,11 +90,11 @@ jobs:
           CGO_ENABLED: "0"
         run: |
           mkdir -p stage/linux-${{ matrix.arch }}
-          go build -trimpath -ldflags="-s -w -X main.version=${{ steps.ver.outputs.tag }}" \
+          go build -trimpath -ldflags="-s -w -X main.version=${{ needs.prepare.outputs.tag }}" \
             -o stage/linux-${{ matrix.arch }}/go-aeneas ./cmd/dido
           cp LICENSE stage/linux-${{ matrix.arch }}/
           cp -R "$ESPEAK_PREFIX/share/espeak-ng-data" stage/linux-${{ matrix.arch }}/
-          ARCHIVE="dido_${{ steps.ver.outputs.tag }}_linux_${{ matrix.arch }}.tar.gz"
+          ARCHIVE="dido_${{ needs.prepare.outputs.tag }}_linux_${{ matrix.arch }}.tar.gz"
           tar -C stage -czf "$ARCHIVE" linux-${{ matrix.arch }}
           echo "archive=$ARCHIVE" >> "$GITHUB_ENV"
 
@@ -100,14 +107,14 @@ jobs:
         run: |
           choco install -y espeak-ng 
           mkdir -p stage/windows-amd64
-          go build -trimpath -ldflags="-s -w -X main.version=${{ steps.ver.outputs.tag }}" \
+          go build -trimpath -ldflags="-s -w -X main.version=${{ needs.prepare.outputs.tag }}" \
             -o stage/windows-amd64/dido.exe ./cmd/dido
           cp LICENSE stage/windows-amd64/
           ESPEAK_PREFIX=C:\Program Files\eSpeak NG
           cp -R "$ESPEAK_PREFIX\espeak-ng-data" stage/windows-amd64
           cp "$ESPEAK_PREFIX\espeak-ng.exe" stage/windows-amd64
           cp "$ESPEAK_PREFIX\libespeak-ng*.dll" stage/windows-amd64
-          ARCHIVE="dido_${{ steps.ver.outputs.tag }}_windows_amd64.zip"
+          ARCHIVE="dido_${{ needs.prepare.outputs.tag }}_windows_amd64.zip"
           (cd stage/windows-amd64 && zip -r "../../$ARCHIVE" .)
           echo "archive=$ARCHIVE" >> "$GITHUB_ENV"
 
