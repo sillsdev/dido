@@ -102,6 +102,7 @@ jobs:
 
       - name: Install espeak-ng (Windows)
         if: matrix.os == 'windows'
+        shell: cmd
         run: |
           choco install -y espeak-ng
           dir /s /b "%ProgramFiles%\eSpeak NG\*"
