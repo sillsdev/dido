@@ -69,7 +69,7 @@ jobs:
       - name: Stage darwin artifact
         if: matrix.os == 'darwin'
         run: |
-          brew update && brew install -y espeak-ng 
+          brew update && brew install espeak-ng
           mkdir -p stage/darwin-universal
           cp packaging/sab/dist/mac/go-aeneas stage/darwin-universal/
           cp LICENSE stage/darwin-universal/
@@ -77,7 +77,7 @@ jobs:
           cp -RL "$BREW_PREFIX/share/espeak-ng-data" stage/darwin-universal/
           cp -L "$BREW_PREFIX/bin/espeak-ng" stage/darwin-universal/
           cp -L "$BREW_PREFIX/lib/libespeak-ng*.dylib" stage/darwin-universal/
-          cp -L "$BREW_PREFIX/lib/libportaudio*.dylib" stage/darwin-universal/
+          cp -L "$BREW_PREFIX/lib/libpcaudio*.dylib" stage/darwin-universal/
           ARCHIVE="dido_${{ needs.prepare.outputs.tag }}_darwin_universal.tar.gz"
           tar -C stage/darwin-universal -czf "$ARCHIVE" .
           echo "archive=$ARCHIVE" >> "$GITHUB_ENV"
@@ -93,7 +93,6 @@ jobs:
           go build -trimpath -ldflags="-s -w -X main.version=${{ needs.prepare.outputs.tag }}" \
             -o stage/linux-${{ matrix.arch }}/go-aeneas ./cmd/dido
           cp LICENSE stage/linux-${{ matrix.arch }}/
-          cp -R "$ESPEAK_PREFIX/share/espeak-ng-data" stage/linux-${{ matrix.arch }}/
           ARCHIVE="dido_${{ needs.prepare.outputs.tag }}_linux_${{ matrix.arch }}.tar.gz"
           tar -C stage -czf "$ARCHIVE" linux-${{ matrix.arch }}
           echo "archive=$ARCHIVE" >> "$GITHUB_ENV"
@@ -106,12 +105,13 @@ jobs:
           GOARCH: amd64
           CGO_ENABLED: "0"
         run: |
-          choco install -y espeak-ng 
+          choco install -y espeak-ng
+          where espeak-ng
           mkdir -p stage/windows-amd64
           go build -trimpath -ldflags="-s -w -X main.version=${{ needs.prepare.outputs.tag }}" \
             -o stage/windows-amd64/dido.exe ./cmd/dido
           cp LICENSE stage/windows-amd64/
-          ESPEAK_PREFIX="C:/Program Files/eSpeak NG"
+          ESPEAK_PREFIX="$(dirname "$(dirname "$(which espeak-ng)")")"
           cp -R "$ESPEAK_PREFIX/espeak-ng-data" stage/windows-amd64
           cp "$ESPEAK_PREFIX/espeak-ng.exe" stage/windows-amd64
           cp "$ESPEAK_PREFIX/libespeak-ng*.dll" stage/windows-amd64
