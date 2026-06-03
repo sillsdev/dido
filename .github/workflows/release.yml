@@ -62,6 +62,7 @@ jobs:
       - name: Stage darwin artifact
         if: matrix.os == 'darwin'
         run: |
+          brew update && brew install -y espeak-ng 
           mkdir -p stage/darwin-universal
           cp packaging/sab/dist/mac/go-aeneas stage/darwin-universal/
           cp LICENSE stage/darwin-universal/
