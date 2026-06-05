@@ -149,7 +149,7 @@ jobs:
           cp "$ESPEAK_PREFIX/espeak-ng.exe" stage/windows-amd64
           cp "$ESPEAK_PREFIX"/libespeak-ng*.dll stage/windows-amd64
           ARCHIVE="dido_${{ needs.prepare.outputs.tag }}_windows_amd64.zip"
-          7z a -tzip -r "$ARCHIVE" stage/windows-amd64/*
+          (cd stage/windows-amd64 && 7z a -tzip -r "../../$ARCHIVE" .)
           echo "archive=$ARCHIVE" >> "$GITHUB_ENV"
 
       - name: Upload artifact
