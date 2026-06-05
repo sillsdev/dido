@@ -67,14 +67,33 @@ jobs:
         if: matrix.os == 'darwin'
         run: brew update && brew install espeak-ng
 
-      - name: Build darwin/universal
+      - name: Build darmin/arm64
         if: matrix.os == 'darwin'
-        run: VERSION="${{ needs.prepare.outputs.tag }}" bash packaging/sab/build.sh mac
+        env:
+          GOOS: darwin
+          GOARCH: arm64
+          CGO_ENABLED: "0"
+        run: |
+          mkdir -p stage/darwin
+          go build -trimpath -ldflags="-s -w -X main.version=${{ needs.prepare.outputs.tag }}" \
+          -o stage/darwin/dido-${{ env.GOARCH }} ./cmd/dido
+
+      - name: Build darmin/arm64
+        if: matrix.os == 'darwin'
+        env:
+          GOOS: darwin
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+        run: |
+          mkdir -p stage/darwin
+          go build -trimpath -ldflags="-s -w -X main.version=${{ needs.prepare.outputs.tag }}" \
+          -o stage/darwin/dido-${{ env.GOARCH }} ./cmd/dido
+
       - name: Stage darwin artifact
         if: matrix.os == 'darwin'
         run: |
           mkdir -p stage/darwin-universal
-          cp packaging/sab/dist/mac/go-aeneas stage/darwin-universal/
+          lipo -create stage/darwin/dido-arm64 stage/darwin/dido-amd64 -output stage/darwin-universal/dido
           cp LICENSE stage/darwin-universal/
           BREW_PREFIX="$(brew --prefix)"
           cp -RL "$BREW_PREFIX/share/espeak-ng-data" stage/darwin-universal/
